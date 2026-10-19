@@ -47,6 +47,7 @@ jobs:
         shell: bash
         run: |
           cd qingping_project
+          sed -i 's/-bootclasspath "$SDK"/-classpath "$SDK"/' build.sh
           ANDROID_HOME=/usr/local/lib/android/sdk bash build.sh
           cp build/QingPing.apk ../QingPing.apk
 
