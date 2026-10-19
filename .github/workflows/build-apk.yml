@@ -1,0 +1,60 @@
+name: Build QingPing APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "source-parts/**"
+      - ".github/workflows/build-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct source archive
+        shell: bash
+        run: |
+          cat source-parts/part-*.b64 > QingPing_Android_Source.zip.b64
+          base64 -d QingPing_Android_Source.zip.b64 > QingPing_Android_Source.zip
+          echo "754001fd5dceb1f27ffb80b49f1ed9cd0245e6dd87c7b77e1f572017a0bc6e35  QingPing_Android_Source.zip" | sha256sum -c -
+          unzip -q QingPing_Android_Source.zip
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build and sign APK
+        shell: bash
+        run: |
+          cd qingping_project
+          bash build.sh
+          cp build/QingPing.apk ../QingPing.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: QingPing-APK
+          path: QingPing.apk
+          if-no-files-found: error
+          retention-days: 30
